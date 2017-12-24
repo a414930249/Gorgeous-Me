@@ -1,6 +1,6 @@
-## Welcome to My Blog pages
+## Welcome to My Blog Pages
 
-### Introduction Of myself 
+### Introduction Of Myself 
 My name is Zhu Wanyu   
 
 
@@ -15,7 +15,7 @@ you could call me tec-freak, ha ha!.
 Now i work as a java and big-data developer and also a java-architect-assistant.  
 In my job, I have designed an system with high availability, extensibility for my company.  
 I also managed to solve problems and develop better system in products iteration.   
-Transforming monolithic application into distribute、 micro-services architecture and Database structure designing dominates my time. 
+Transforming monolithic application into distribute, micro-services architecture and Database structure designing dominates my time. 
 
 
 ##### what i want to do
@@ -27,21 +27,23 @@ Of course, i won't neglect what i have.
 
 
 #### Intend of My Blog
-View this page
+View this [page](https://github.com/a414930249/Gorgeous-Me/blob/master/blog/README.md)
 
 
-## A Overview Of My Blog Content 
+## An Overview Of My Blog Content 
 (not completed yet)
 
 ```java 
+
+java
 　　┗ ~opentsdb                          :an time-serise database         
 　　┗ datasource                                                               ||=========================||    
 　　    ┗ ~druid                                                               || symbol illustration:    ||
 　　　  ┗ ~multi-datasource                                                    ||~  page content          ||
 　　　  ┗ ~distributed transaction                                             ||:  comment               ||
-    ┗ module                                                                   ||┗  hierarchy             ||
-        ┗ ~login (shiro)                                                       ||| the key word seperator ||
-    ┗ performance                                                               ||=========================||
+    ┗ module                                                                  ||┗  hierarchy             ||
+        ┗ ~login (shiro)                                                      || the key word seperator ||
+    ┗ performance                                                             ||=========================||
             ┗ reactive programming
                 ┗ ~akka                         :an actor model
                 ┗ ~rxjava                       :publish/subscribe library
@@ -54,8 +56,9 @@ View this page
                 ┗ ~dwr                  :a reverse ajax library
                 ┗ ~websocket                                                                            
             ┗ ~connection 
-            
-            
+    ┗ source code analyse
+        ┗ mina   
+                
 scala
     ┗ ~basic 
     
@@ -74,7 +77,6 @@ elegant coding
 big data
     ┗ real-time processing
         ┗ ~storm
-        ┗ Jstorm
         ┗ ~spark-streaming
     ┗ hadoop
     ┗ spark
@@ -95,15 +97,17 @@ tcp-socket
     ┗ mina                                  :source code analysis
     ┗ netty                             
 
+
+
 ```
-[*] because the above format in markdown don't support links, so click [here](https://github.com/a414930249/firstBolgTest) to my github   
+[*] because the above format in markdown don't support links, so click[here](https://github.com/a414930249/firstBolgTest) to my github   
 
 
 ## book recommendation
 I recommend the following books that i felt it really good.
 
 - netty in action        
-- 轻量级微服务架构上下册 by 黄勇
+- 轻量级微服务架构(上下)  by 黄勇
 - 分布式系统常用技术及案例分析  by waylau
 - 逆流而上 阿里巴巴技术成长之路
 
@@ -111,7 +115,7 @@ I recommend the following books that i felt it really good.
 
 
 ## contact me  
-If you have any questions  or have any suggestions, you can contact me  
+If you have any questions or have any suggestions, please contact me     
 QQ: 414930249  
-Tel: +86 17075250045  
+tel: +86 17075250045  
 mail: 414930249@qq.com  
