@@ -1,0 +1,275 @@
+---
+layout: post
+title: "缓存-牺牲一致性"
+date: 2017-11-02 15:00:00 +0800
+categories: java
+tag: [cache, spring-cache]
+---
+* content
+{:toc}
+
+
+在企业中， 为了性能的提升， 常常会使用缓存技术， 在业界中已经有很多非常优质的缓存框架，如Memcached 分布式缓存， ehcache 进程内缓存（也有分布式缓存）， redis 作为缓存服务器. hazelcast 作为分布式缓存, guava进程内缓存。
+
+<!-- more -->
+
+研究了一系列的缓存架构， 最后要集成到系统中， 在代码中， 我们不希望缓存增加代码的耦合性， 也就是类似下列伪代码：
+
+```java
+    a = getFromCache(key) 从缓存中获取
+    if(a!=null) return a;
+    a = doSomething(params);
+    save2cache(key, a, time expired); // 将a存入缓存
+    return a;
+```
+
+以上代码大大增加了代码的耦合性， 并且一旦缓存架构换了， 所有与之相关的代码可能都需要改变。使得维护的成本大大增加。那么如何能做到缓存的抽象呢？
+
+我们希望， 只用一个注解， 告诉这个方法要缓存了或者要删除缓存了，然后存储或更新或删除的逻辑会进行抽象。 并且当缓存出现问题了， 并不会影响源方法的执行。同时我们想要更换缓存的存储介质不需要修改原来的代码。
+
+## spring cache
+基于这点， 我们发现， spring cache 为我们提供了这层的抽象, 我们仅仅在方法上加`@Cacheable`就可以将返回值进行缓存， 被标有`@CacheEvict` 就会执行根据key进行缓存删除。 并且我们想要换一个缓存框架比如从ehcache -> redis, 只需编写相应的CacheManager, 将存储和删除的逻辑实现即可。
+
+对于spring cache 我在这里做个简单的介绍：
+
+
+```java
+
+    最主要的就是 @Cacheable 注解了
+
+以下是spring4.1 以上的版本，对于4.1以下的版本， 不支持cacheManager, cacheResolver. 
+public @interface Cacheable {
+	String[] value() default {};   // 类似于数据库级别
+	String key() default "";       // key， 可以不指定
+	String keyGenerator() default "";       // 生成key的策略
+	String cacheManager() default "";      //
+	String cacheResolver() default "";
+	String condition() default "";
+	String unless() default "";
+}
+
+spring 还有一个强大的地方就是支持spEl, 这样使得key的生成是动态的，可定制的。
+比如
+@Data
+class M{
+    String name;
+}
+
+@Cacheable(key="#m.name")
+public M method(M m){
+    
+}
+
+```
+spring cache 非常简单， 但是缓存和抽象存在很多隐患， 想要集成到系统中， 需要进行仔细的设计。
+
+
+首先我们做以下分析：  
+1.  什么数据是需要缓存的？
+2.  缓存的失效策略 --- 缓存存多久
+3.  缓存会存在什么问题
+
+
+### springCache 的 不足
+1. 我们无法通过注解设置缓存的生命周期。 
+
+
+### springCache 的强大
+其强大
+
+
+
+## 多种应用场景分析
+
+1. 牺牲缓存清除（过期自动清除）
+
+有时候， 我们对某个表或实体基本不会执行更新操作，只会执行新增操作， 同时， 我们是根据id 查询到该实体类， *那么我认为*， 我们可以使用keyGenerator 来对特定的方法**自动**生成一个特定的key。 一般还需要与unless`unless= '#result == null'`连用， 如果返回的结果为空， 我们不会进行缓存。
+
+使用keyGenerator，我们不必担心缓存key的生成， 只要写一套就可以了。下面是示例
+```java 
+public class CommonKeyGenerator implements KeyGenerator {
+    public static final String CACHE_HEADER = "cache";
+    
+    /**
+     * the prefix of the key
+     * @return
+     */
+    protected String prefix(){
+        return CACHE_HEADER;
+    }
+
+    @Override
+    public Object generate(Object target, Method method, Object... params) {
+        String key = prefix() + connectSymbol()+ key(target, method, params);
+        return key;
+    }
+
+    /**
+     * default :
+     * @return
+     */
+    protected String connectSymbol(){
+        return ":";
+    }
+
+    public String key(Object target, Method method, Object... params){
+        String key =  new BaseCacheKey(target, method, params).toString();
+        return key;
+    }
+}
+// 通过方法名，参数列表， 类名生成一个唯一的key
+public class BaseCacheKey implements Serializable {
+
+    private static final long serialVersionUID = -1651889717223143579L;
+
+    private static final Logger logger = LoggerFactory.getLogger(BaseCacheKey.class);
+
+    private final Object[] params;
+    private final int hashCode;
+    private final String className;
+    private final String methodName;
+
+    public BaseCacheKey(Object target, Method method, Object[] elements){
+        this.className=target.getClass().getName();
+        this.methodName=getMethodName(method);
+        this.params = new Object[elements.length];
+        System.arraycopy(elements, 0, this.params, 0, elements.length);
+        this.hashCode=generatorHashCode();
+    }
+
+    private String getMethodName(Method method){
+        StringBuilder builder = new StringBuilder(method.getName());
+        Class<?>[] types = method.getParameterTypes();
+        if(types.length!=0){
+            builder.append("(");
+            for(Class<?> type:types){
+                String name = type.getName();
+                builder.append(name+",");
+            }
+            builder.append(")");
+        }
+        return builder.toString();
+    }
+
+    @Override
+    public boolean equals(Object obj){
+        if(this==obj)
+            return true;
+        if (obj == null)
+            return false;
+        if (getClass() != obj.getClass())
+            return false;
+        BaseCacheKey o=(BaseCacheKey) obj;
+        if(this.hashCode!=o.hashCode())
+            return false;
+        if(!Optional.of(o.className).or("").equals(this.className))
+            return false;
+        if(!Optional.of(o.methodName).or("").equals(this.methodName))
+            return false;
+        if (!Arrays.equals(params, o.params))
+            return false;
+        return true;
+    }
+
+    @Override
+    public final int hashCode() {
+        return hashCode;
+    }
+
+    private int generatorHashCode() {
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + hashCode;
+        result = prime * result + ((methodName == null) ? 0 : methodName.hashCode());
+        result = prime * result + Arrays.deepHashCode(params);
+        result = prime * result + ((className == null) ? 0 : className.hashCode());
+        return result;
+    }
+
+    @Override
+    public String toString() {
+        logger.debug(Arrays.toString(params));
+        logger.debug(Arrays.deepToString(params));
+        return "BaseCacheKey [params=" + Arrays.deepToString(params) + ", className=" + className + ", methodName="
+                + methodName + "]";
+    }
+
+}
+以上实现仅供参考。
+```
+**注意一点，方法被代理的话className不要作为key的元素之一,因为名称中会有其他@xxx等信息。在分布式中同一份数据会被存多份。**
+2. 要想在执行增删改时清空或put新的缓存值
+
+我们知道缓存可以说是一个有过期策略的ConcurrentHashMap  
+要想更新缓存或删除对应的缓存, key 必须要匹配， 那么我们想要的自动生成的keyGenerator 似乎已经达不到要求了， 因为即使再怎么实现KeyGenerator, 貌似无法实现两个方法key能够统一。
+
+这时候我们可能就要进行匹配key的设计
+示例如下
+
+```
+@Cacheable(key = "#keyManager.getModuleKey('role',#roleId)", unless = "#result == null")
+public Role getRoleById(String roleId) throws Exception {
+    return daoImpl.findRollerById(roleId);
+}
+@CachePut(key = "#keyManager.getModuleKey('role',#role.roleId)")
+public Role updateRoleById(Role role) throws Exception {
+    role.setRoleName("xxx");
+    return role;
+}
+@CacheEvict(key = "#keyManager.getModuleKey('role',#role.roleId)")
+public void deleteRoleById(String roleId) throws Exception {
+    daoImpl.deleteRoleId(roleId);
+}
+
+@Component
+public class KeyManager {
+    /**
+    * module 模块名称， args 多个参数， 基本类型， 非数组
+    **/
+    public String getModuleKey(String module, Object... args){
+        return module +":" + Joiner.on(":").join(args);
+    }
+}
+使用方法的好处就是一个地方改了， 跟着其他的key也会变动。
+以上是我的简单实现， 大家可以根据不同的业务写不同的方法， 我建议最好放在一起集中管理。
+```
+
+当然以上并不是解决所有对于增删改差的问题， 因为假如说， 某个方法内是关联查询，返回的对象包含另外一个实体类， 那么像这种更新并只会更新局部。 所以要非常小心使用。
+
+以上最好是针对单个实体的增删改。
+
+
+
+
+## 学会面向缓存设计
+有时候， 我们查询某个查询的业务比较复杂， 其中包含多次数据库查询， 我可能并不建议直接在该方法上执行缓存， 而是对于里面的小方法进行缓存。 
+
+有时候我们可以将一个查询进行拆分， 将变化的部分单独查询。 比如说某个实体类有个状态字段， 会经常变化， 而其他信息基本上不会变化。
+固定的部分可能内容很多， 并且过程较多， 而易变的东西可能很容易获取。
+
+比如如下
+```
+public Result getTarget(...){
+    Result res = findFixedValue(...);  // findFixedValue 方法进行缓存
+    Integer a = findVariateValue(...); // findVaiable  不进行缓存。
+    result.setA(a);
+    retrun res;
+}
+```
+
+
+对于spring cache 并没有提供对于过期策略， 而是根据缓存框架的支持。比如ehcache可以通过xml配置
+<cache name = ""
+   timeToIdleSeconds="86400"
+   timeToLiveSeconds="86400"
+/>,
+
+guava 缓存提供多种过期策略。
+redis 通过设置过期时间。
+
+当然在oschina和github中还有很多开源的框架， 还是要根据自己的业务需求选择合适的框架， 比如考虑分布式， 考虑缓存策略等方面。 
+
+
+---
+采用缓存在很大程度上会丧失一致性， 开过期策略所能容忍的范围内采用缓存， 不要一味追求性能而滥用缓存， 否则必然会带来惨重的代价。
+

@@ -1,1 +1,27 @@
-encoding: utf-8
+# Site settings
+name: Gergeous_me's Blog
+email: wanyu_wolfgang@163.com
+author: WY/Z
+url: http://xiaokedada.com
+resume_site: http://xiaokedada.com/me/
+github: https://github.com/a414930249/
+baseurl: ""  #根目录
+description:     There is no royal road to learning.
+motto: 学习永无止境
+#motto: 如果生活欺骗了你，不要悲伤，不要哭泣。
+banner: 属于你的一份执着
+#permalink: /:categories/:year/:month/:day/:title/
+permalink: /:year/:month/:day/:title/
+excerpt_separator:  '<!-- more -->' #文章摘要
+paginate: 8
+paginate_path: "page:num"
+plugins: [jekyll-paginate]
+exclude: ['README.md', 'Gemfile.lock', 'Gemfile', 'Rakefile']
+github_username: maoxiaoke
+highlighter: rouge
+markdown: kramdown
+FB:
+  comments :
+    provider : disqus
+    disqus :
+        short_name : xiaokedada
