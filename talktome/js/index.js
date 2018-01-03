@@ -57,7 +57,7 @@ var myBot = new BotUI('hello-world');
           return myBot.message.add ({
           delay: 1000,
           loading: true,
-          content: `Go ahead, try [my website](http://xiaokedada.com) or <a href="mailto:wanyu_wolfgang@163.com">Email me.</a> </br>
+          content: `Go ahead, try [my website](http://39.106.200.196/) or <a href="mailto:wanyu_wolfgang@163.com">Email me.</a> </br>
                     Here is my [Github address](https://github.com/a414930249).`
         });
         break;/*
